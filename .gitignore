@@ -2,3 +2,9 @@
 build
 tags
 .editorconfig
+
+# silly macOS
+.DS_Store
+
+# Jupyter Notebook
+.ipynb_checkpoints
