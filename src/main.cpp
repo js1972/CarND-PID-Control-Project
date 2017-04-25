@@ -3,6 +3,7 @@
 #include "json.hpp"
 #include "PID.h"
 #include <math.h>
+#include <vector>
 
 // for convenience
 using json = nlohmann::json;
@@ -27,6 +28,13 @@ std::string hasData(std::string s) {
   }
   return "";
 }
+
+double twiddle_best_error_ = 1000;
+bool twiddle_state_ = 0;
+int twiddle_idx = 0;
+std::vector<double> p = {0.2, 0.004. 3.0};
+std::vector<double> dp = {0.001, 0001, 0.001};
+
 
 int main()
 {
@@ -70,6 +78,65 @@ int main()
           
           // DEBUG
           std::cout << "CTE: " << cte << " Steering Value: " << steer_value << std::endl;
+
+          // Twiddle
+          // Implemented as a state-machine:
+          //
+          // python twiddle loop
+          // while sum(dp) > tol:
+          //   for i in range(len(p)):
+          //     p[i] += dp[i]
+          //     _, _, err = run(robot, p)
+          //     if err < best_err:
+          //         best_err = err
+          //         dp[i] *= 1.1
+          //     else:
+          //         p[i] -= 2.0 * dp[i]
+          //         _, _, err = run(robot, p)
+          //         if err < best_err:
+          //             best_err = err
+          //             dp[i] *= 1.1
+          //        else:
+          //             p[i] += dp[i]
+          //             dp[i] *= 0.9
+
+          if (pid.TotalError() > twiddle_best_error_) {
+            if (twiddle_state_ == 0) {
+              twiddle_best_error_ = pid.TotalError();
+              p[twiddle_idx] += dp[twiddle_idx];
+              pid.Init(p[0], p[1], p[2]);
+              twiddle_state_ = 1;
+            } else if (twiddle_state_ == 1) {
+              if (pid.TotalError() < twiddle_best_error_) {
+                twiddle_best_error_ = pid.TotalError();
+                dp[twiddle_idx] *= 1.1;
+                twiddle_idx = (twiddle_idx+1)%3; //rotate over the 3 vector indices
+                p[twiddle_idx] += dp[twiddle_idx];
+                twiddle_state_ = 1;
+                pid.Init(p[0], p[1], p[2]);
+              } else {
+                p[twiddle_idx] -= 2 * dp[twiddle_idx];
+                twiddle_state_ = 2;
+                pid.Init(p[0], p[1], p[2]);
+              }
+            } else { //twiddle_state_ = 3
+              if (pid.TotalError() < twiddle_best_error_) {
+                twiddle_best_error_ = pid.TotalError();
+                dp[twiddle_idx] *= 1.1;
+                twiddle_idx = (twiddle_idx+1)%3;
+                p[twiddle_idx] += dp[twiddle_idx];
+                twiddle_state_ = 1;
+                pid.Init(p[0], p[1], p[2]);
+              } else {
+                p[twiddle_idx] += dp[twiddle_idx];
+                dp[twiddle_idx] *= 0.9;
+                twiddle_idx = (twiddle_idx+1)%3;
+                p[twiddle_idx] += dp[twiddle_idx];
+                twiddle_state_ = 1;
+                pid.Init(p[0], p[1], p[2]);
+              }
+            }
+          }
 
           json msgJson;
           msgJson["steering_angle"] = steer_value;
