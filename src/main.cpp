@@ -29,6 +29,7 @@ std::string hasData(std::string s) {
   return "";
 }
 
+// Added for "twiddling" the PID coefficients
 bool twiddle_on_ = false;
 double twiddle_best_error_ = 1000000;
 bool twiddle_state_ = 0;
@@ -43,7 +44,6 @@ void twiddle(PID &pid_control) {
   if (twiddle_state_ == 0) {
     twiddle_best_error_ = pid_control.TotalError();
     p[twiddle_idx] += dp[twiddle_idx];
-    //pid.Init(p[0], p[1], p[2]);
     twiddle_state_ = 1;
   } else if (twiddle_state_ == 1) {
     if (pid_control.TotalError() < twiddle_best_error_) {
@@ -52,14 +52,12 @@ void twiddle(PID &pid_control) {
       twiddle_idx = (twiddle_idx + 1) % 3; //rotate over the 3 vector indices
       p[twiddle_idx] += dp[twiddle_idx];
       twiddle_state_ = 1;
-      //pid.Init(p[0], p[1], p[2]);
     } else {
       p[twiddle_idx] -= 2 * dp[twiddle_idx];
       if (p[twiddle_idx] < 0) {
         p[twiddle_idx] = 0;
       }
       twiddle_state_ = 2;
-      //pid.Init(p[0], p[1], p[2]);
     }
   } else { //twiddle_state_ = 2
     if (pid_control.TotalError() < twiddle_best_error_) {
@@ -68,7 +66,6 @@ void twiddle(PID &pid_control) {
       twiddle_idx = (twiddle_idx + 1) % 3;
       p[twiddle_idx] += dp[twiddle_idx];
       twiddle_state_ = 1;
-      //pid.Init(p[0], p[1], p[2]);
     } else {
       p[twiddle_idx] += dp[twiddle_idx];
       dp[twiddle_idx] *= 0.9;
@@ -81,6 +78,7 @@ void twiddle(PID &pid_control) {
 
   pid_control.Init(p[0], p[1], p[2]);
 }
+// End Twiddle
 
 
 int main(int argc, char* argv[])
@@ -92,6 +90,7 @@ int main(int argc, char* argv[])
     std::cout << argument << std::endl;
     if (argument == "true") {
       twiddle_on_ = true;
+      std::cout << "Twiddling the PID coefficients..." << std::endl;
     }
   }
 
@@ -101,8 +100,7 @@ int main(int argc, char* argv[])
   PID pid;
   PID speed_control_pid;
 
-  // TODO: Initialize the pid variable.
-  // What are the best coefficients?!?!??!?!?!?!?!? Implement twiddle algo.
+  // Initialize the pid variable.
   //pid.Init(0.2, 0.004, 3.0);
   pid.Init(0.2, 0.001, 3.0);
   speed_control_pid.Init(0.2, 0.001, 2.0);
@@ -128,10 +126,9 @@ int main(int argc, char* argv[])
           double required_speed = 30.0;
 
           /*
-          * TODO: Calcuate steering value here, remember the steering value is
+          * Calcuate steering value here, remember the steering value is
           * [-1, 1].
-          * NOTE: Feel free to play around with the throttle and speed. Maybe use
-          * another PID controller to control the speed!
+          * NOTE: Another PID controller is used to set the speed.
           */
           pid.UpdateError(cte);
           steer_value = pid.TotalError();
@@ -147,10 +144,14 @@ int main(int argc, char* argv[])
           speed_value = speed_control_pid.TotalError();
           
           // DEBUG
-          //std::cout << "CTE: " << cte << " Steering Value: " << steer_value << std::endl;
+          if (!twiddle_on_) {
+            std::cout << "CTE: " << cte << " Steering Value: " << steer_value << " Speed: " << speed_value << std::endl;
+          }
 
           // Twiddle
-          // Implemented as a state-machine:
+          // Implementation of the following python twiddle algorithm
+          // as a state-machine.
+          // Twiddle can be executed by running the PID program like "./pid true"
           //
           // python twiddle loop
           // while sum(dp) > tol:
@@ -171,7 +172,6 @@ int main(int argc, char* argv[])
           //             dp[i] *= 0.9
 
           if (twiddle_on_) {
-            //std::cout << "*** TWIDDLE IS ON ***" << std::endl;
             twiddle_iterations_++;
             //if ((pid.TotalError() < twiddle_best_error_ && twiddle_iterations_ > 100) || ((speed<required_speed*0.5) && twiddle_iterations_ > 80)) {
             // Let it start running a bit first and also reset if car crashes
