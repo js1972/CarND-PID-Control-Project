@@ -5,4 +5,4 @@
 #
 
 # Run the PID controller
-./build/pid
+./build/pid $1
