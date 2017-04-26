@@ -32,7 +32,7 @@ std::string hasData(std::string s) {
 double twiddle_best_error_ = 1000;
 bool twiddle_state_ = 0;
 int twiddle_idx = 0;
-std::vector<double> p = {0.2, 0.004. 3.0};
+std::vector<double> p = {0.2, 0.004, 3.0};
 std::vector<double> dp = {0.001, 0001, 0.001};
 
 
@@ -68,7 +68,8 @@ int main()
           * another PID controller to control the speed!
           */
           pid.UpdateError(cte);
-          steer_value = - pid.TotalError();
+          steer_value = pid.TotalError();
+          
           if (steer_value > 1.0) {
             steer_value = 1.0;
           }
@@ -100,43 +101,44 @@ int main()
           //             p[i] += dp[i]
           //             dp[i] *= 0.9
 
-          if (pid.TotalError() > twiddle_best_error_) {
-            if (twiddle_state_ == 0) {
-              twiddle_best_error_ = pid.TotalError();
-              p[twiddle_idx] += dp[twiddle_idx];
-              pid.Init(p[0], p[1], p[2]);
-              twiddle_state_ = 1;
-            } else if (twiddle_state_ == 1) {
-              if (pid.TotalError() < twiddle_best_error_) {
-                twiddle_best_error_ = pid.TotalError();
-                dp[twiddle_idx] *= 1.1;
-                twiddle_idx = (twiddle_idx+1)%3; //rotate over the 3 vector indices
-                p[twiddle_idx] += dp[twiddle_idx];
-                twiddle_state_ = 1;
-                pid.Init(p[0], p[1], p[2]);
-              } else {
-                p[twiddle_idx] -= 2 * dp[twiddle_idx];
-                twiddle_state_ = 2;
-                pid.Init(p[0], p[1], p[2]);
-              }
-            } else { //twiddle_state_ = 3
-              if (pid.TotalError() < twiddle_best_error_) {
-                twiddle_best_error_ = pid.TotalError();
-                dp[twiddle_idx] *= 1.1;
-                twiddle_idx = (twiddle_idx+1)%3;
-                p[twiddle_idx] += dp[twiddle_idx];
-                twiddle_state_ = 1;
-                pid.Init(p[0], p[1], p[2]);
-              } else {
-                p[twiddle_idx] += dp[twiddle_idx];
-                dp[twiddle_idx] *= 0.9;
-                twiddle_idx = (twiddle_idx+1)%3;
-                p[twiddle_idx] += dp[twiddle_idx];
-                twiddle_state_ = 1;
-                pid.Init(p[0], p[1], p[2]);
-              }
-            }
-          }
+          // // TWIDDLE GOES HERE
+          // if (pid.TotalError() > twiddle_best_error_) {
+          //   if (twiddle_state_ == 0) {
+          //     twiddle_best_error_ = pid.TotalError();
+          //     p[twiddle_idx] += dp[twiddle_idx];
+          //     pid.Init(p[0], p[1], p[2]);
+          //     twiddle_state_ = 1;
+          //   } else if (twiddle_state_ == 1) {
+          //     if (pid.TotalError() < twiddle_best_error_) {
+          //       twiddle_best_error_ = pid.TotalError();
+          //       dp[twiddle_idx] *= 1.1;
+          //       twiddle_idx = (twiddle_idx+1)%3; //rotate over the 3 vector indices
+          //       p[twiddle_idx] += dp[twiddle_idx];
+          //       twiddle_state_ = 1;
+          //       pid.Init(p[0], p[1], p[2]);
+          //     } else {
+          //       p[twiddle_idx] -= 2 * dp[twiddle_idx];
+          //       twiddle_state_ = 2;
+          //       pid.Init(p[0], p[1], p[2]);
+          //     }
+          //   } else { //twiddle_state_ = 3
+          //     if (pid.TotalError() < twiddle_best_error_) {
+          //       twiddle_best_error_ = pid.TotalError();
+          //       dp[twiddle_idx] *= 1.1;
+          //       twiddle_idx = (twiddle_idx+1)%3;
+          //       p[twiddle_idx] += dp[twiddle_idx];
+          //       twiddle_state_ = 1;
+          //       pid.Init(p[0], p[1], p[2]);
+          //     } else {
+          //       p[twiddle_idx] += dp[twiddle_idx];
+          //       dp[twiddle_idx] *= 0.9;
+          //       twiddle_idx = (twiddle_idx+1)%3;
+          //       p[twiddle_idx] += dp[twiddle_idx];
+          //       twiddle_state_ = 1;
+          //       pid.Init(p[0], p[1], p[2]);
+          //     }
+          //   }
+          // }
 
           json msgJson;
           msgJson["steering_angle"] = steer_value;
