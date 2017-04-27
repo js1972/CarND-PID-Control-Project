@@ -35,7 +35,7 @@ double twiddle_best_error_ = 1000000;
 bool twiddle_state_ = 0;
 int twiddle_idx = 0;
 int twiddle_iterations_ = 0;
-std::vector<double> p = {0.2, 0.004, 2.0};
+std::vector<double> p = {0.27, 0.001, 3.0};
 std::vector<double> dp = {0.05, 0.001, 0.05};
 
 void twiddle(PID &pid_control) {
@@ -56,6 +56,7 @@ void twiddle(PID &pid_control) {
       p[twiddle_idx] -= 2 * dp[twiddle_idx];
       if (p[twiddle_idx] < 0) {
         p[twiddle_idx] = 0;
+        twiddle_idx = (twiddle_idx + 1) % 3;
       }
       twiddle_state_ = 2;
     }
@@ -102,7 +103,8 @@ int main(int argc, char* argv[])
 
   // Initialize the pid variable.
   //pid.Init(0.2, 0.004, 3.0);
-  pid.Init(0.2, 0.001, 3.0);
+  //pid.Init(0.2, 0.001, 3.0);
+  pid.Init(0.15, 0.001, 1.5); // best params so far found with twiddle on cotinuous loop
   speed_control_pid.Init(0.2, 0.001, 2.0);
 
   h.onMessage([&pid, &speed_control_pid](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
@@ -173,26 +175,26 @@ int main(int argc, char* argv[])
 
           if (twiddle_on_) {
             twiddle_iterations_++;
-            //if ((pid.TotalError() < twiddle_best_error_ && twiddle_iterations_ > 100) || ((speed<required_speed*0.5) && twiddle_iterations_ > 80)) {
+
             // Let it start running a bit first and also reset if car crashes
             if ((twiddle_iterations_ > 1000) || ((speed<required_speed*0.5) && twiddle_iterations_ > 80)) {
               if ((speed<required_speed*0.5) && twiddle_iterations_ > 80) { //probably crash
                 twiddle_best_error_ = 1000000;
+                std::string msg = "42[\"reset\", {}]";
+                std::cout << msg << std::endl;
+                ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
               }
+
               twiddle(pid);
               std::cout << "P VECTOR: " << p[0] << "\t" << p[1] << "\t" << p[2] << std::endl;
-              std::string msg = "42[\"reset\", {}]";
-              std::cout << msg << std::endl;
-              ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
               twiddle_iterations_ = 0;
-            } else {
-              json msgJson;
-              msgJson["steering_angle"] = steer_value;
-              msgJson["throttle"] = speed_value; //0.3;
-              auto msg = "42[\"steer\"," + msgJson.dump() + "]";
-              //std::cout << msg << std::endl;
-              ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
             }
+
+            json msgJson;
+            msgJson["steering_angle"] = steer_value;
+            msgJson["throttle"] = speed_value;
+            auto msg = "42[\"steer\"," + msgJson.dump() + "]";
+            ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
           } else {
             json msgJson;
             msgJson["steering_angle"] = steer_value;
