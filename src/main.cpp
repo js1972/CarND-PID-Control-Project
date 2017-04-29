@@ -104,7 +104,7 @@ int main(int argc, char* argv[])
   // Initialize the pid variable.
   //pid.Init(0.2, 0.004, 3.0);
   //pid.Init(0.2, 0.001, 3.0);
-  pid.Init(0.15, 0.001, 1.5); // best params so far found with twiddle on cotinuous loop
+  pid.Init(0.15, 0.001, 1.5); // best params so far found with twiddle on continuous loop
   speed_control_pid.Init(0.2, 0.001, 2.0);
 
   h.onMessage([&pid, &speed_control_pid](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {

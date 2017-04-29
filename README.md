@@ -3,6 +3,34 @@ Self-Driving Car Engineer Nanodegree Program
 
 ---
 
+## Intro
+The purpose of this project is to create a PID controller to drive a car smoothly and successfully around the Udacity simulator.
+
+## Reflection
+The PID controller is made up fo 3 components:<br>
+P - Proportional: Here we steer the car proportionally to its offset from the center of the road (or desired path). An issue with just using a proportional controller is overshoot.
+
+[![PID controller with only P component active](https://img.youtube.com/vi/OU4RHUCBLJg/0.jpg)](https://www.youtube.com/watch?v=OU4RHUCBLJg)
+
+D - Differential: He we add some feedback into the contoller about how quickly it is moving back to the required path and essentially dampen this movement.
+
+[![PID controller with only P component active](https://img.youtube.com/vi/PhVvHx5NFxw/0.jpg)](https://www.youtube.com/watch?v=PhVvHx5NFxw)
+
+I - Integration: He we integrate (sum) over the error and feed this signal back into our controller to compensate for any drfit in the vehicle. Drift can occur for variour reasons such as misalignments of the wheels for example. In this project I found zero or very close to zero drift in the vehicle. My best parameters have the I coeffecicnt set to 0.001. See the video below using the best parameters found with the twiddle algorithm explained further below...
+
+[![PID controller with only P component active](https://img.youtube.com/vi/B_f4edzNUuw/0.jpg)](https://www.youtube.com/watch?v=B_f4edzNUuw)
+
+---
+
+### Tuning
+I used the "Twiddle" algorithm to tune the coefficient for the P, I and D components of the controller. To run the controller in twiddle mode simply anter true as a parameter, i.e. `./pid true` or `./run.sh true`.
+
+What the twiddle algorithm does is continually adjust the PID coefficients as the car drives, trying to find the best (or lowset) overall error.
+I found the following parameters which are set in the PID initialisation as ones that provided a nice smooth driving experience around the track.
+```
+pid.Init(0.15, 0.001, 1.5);
+```
+
 ## Dependencies
 
 * cmake >= 3.5
